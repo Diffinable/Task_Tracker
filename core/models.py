@@ -5,8 +5,14 @@ class User(AbstractUser):
     pass
 
 class UserTask(models.Model):
+    class Role(models.TextChoices):
+        OWNER = 'owner'
+        EXECUTOR = 'executor'
+
     user = models.ForeignKey("User", on_delete=models.PROTECT)
     task = models.ForeignKey("Task", on_delete=models.PROTECT)
+    work_time = models.DecimalField(max_digits=10, decimal_places=2)
+    role = models.CharField(choices=Role.choices)
 
 class Task(models.Model):
     class TaskType(models.TextChoices):

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import Task, User
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,4 +18,11 @@ class UserSerializer(serializers.ModelSerializer):
         )
         return user
 
-    
+class TaskSerializer(serializers.ModelSerializer):
+    status_name = serializers.CharField(source='status.name', read_only=True)
+
+    class Meta:
+        model = Task
+
+        fields = ("id", "name", "description", "status", "type", "planned_time", "slug")
+        extra_kwargs = {'status': {'write_only': True}}
