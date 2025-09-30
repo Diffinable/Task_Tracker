@@ -1,21 +1,24 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
-class User(models.Model):
-    first_name = models.CharField()
-    last_name = models.CharField()
-    username = models.CharField()
-    password = models.CharField()
+class User(AbstractUser):
+    pass
 
 class UserTask(models.Model):
-    user = models.ForeignKey("User")
-    task = models.ForeignKey("Task")
+    user = models.ForeignKey("User", on_delete=models.PROTECT)
+    task = models.ForeignKey("Task", on_delete=models.PROTECT)
 
 class Task(models.Model):
+    class TaskType(models.TextChoices):
+        FEATURE = "feature"
+        BUGFIX = "bugfix"
+        HOTFIX = "hotfix"
+
     name = models.CharField()
     description = models.CharField(blank=True, null=True)
-    status = models.ForeignKey("Status")
-    type = models.Choices(["feature", "bugfix", "hotfix"])
-    planned_time = models.DecimalField()
+    status = models.ForeignKey("Status", on_delete=models.PROTECT)
+    type = models.CharField(choices=TaskType.choices)
+    planned_time = models.DecimalField(max_digits=10, decimal_places=2)
     slug = models.CharField()
 
 class Status(models.Model):
@@ -24,5 +27,5 @@ class Status(models.Model):
 class BranchesTask(models.Model):
     name = models.CharField()
     url = models.CharField(blank=True, null=True)
-    task = models.ForeignKey("Task")
+    task = models.ForeignKey("Task", on_delete=models.PROTECT)
 
