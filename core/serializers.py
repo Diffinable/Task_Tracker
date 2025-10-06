@@ -24,5 +24,8 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
 
-        fields = ("id", "name", "description", "status", "type", "planned_time", "slug")
+        fields = ("id", "name", "description", "status", "status_name", "type", "planned_time", "slug")
         extra_kwargs = {'status': {'write_only': True}}
+
+class AddExecutorSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
