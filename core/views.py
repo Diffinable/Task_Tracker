@@ -14,6 +14,7 @@ class RegisterView(generics.CreateAPIView):
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
+    base_permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         task = serializer.save()
@@ -24,12 +25,11 @@ class TaskViewSet(viewsets.ModelViewSet):
         )
 
     def get_permissions(self):
+        permission_classes = self.base_permission_classes
         if self.action in ['update', 'partial_update', 'destroy', 'manage_participant']:
-            permission_classes = [permissions.IsAuthenticated, IsTaskOwner]
+            permission_classes.append(IsTaskOwner)
         elif self.action in ['log_time']:
-            permission_classes = [permissions.IsAuthenticated, IsAssignedToTask]
-        else:
-            permission_classes = [permissions.IsAuthenticated]
+            permission_classes.append(IsAssignedToTask)
 
         return [permission() for permission in permission_classes] 
     
