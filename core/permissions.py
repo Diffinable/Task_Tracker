@@ -12,3 +12,7 @@ class IsTaskOwner(permissions.BasePermission):
 class IsAssignedToTask(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         return UserTask.objects.filter(user=request.user, task=obj).exists()
+    
+class IsSelf(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.user == request.user

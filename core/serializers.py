@@ -27,6 +27,15 @@ class TaskSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "description", "status", "status_name", "type", "planned_time", "slug")
         extra_kwargs = {'status': {'write_only': True}}
 
+class UserTaskSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = UserTask
+
+        fields = {"id", "user", "user_name", "task", "work_time", "role"}
+        read_only_fields = {'task', 'work_time'}
+
 class ManageParticipantSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     role = serializers.ChoiceField(choices=UserTask.Role.choices)
