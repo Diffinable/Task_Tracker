@@ -33,8 +33,8 @@ class UserTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserTask
 
-        fields = {"id", "user", "user_name", "task", "work_time", "role"}
-        read_only_fields = {'task', 'work_time'}
+        fields = ("id", "user", "user_name", "task", "work_time", "role")
+        read_only_fields = ('task', 'work_time')
 
 class ManageParticipantSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
