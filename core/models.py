@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils.text import slugify
+
 
 class User(AbstractUser):
     pass
@@ -26,6 +28,14 @@ class Task(models.Model):
     type = models.CharField(choices=TaskType.choices, default=2, blank=True, null=True)
     planned_time = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     slug = models.CharField(unique=True ,blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            super().save(*args, **kwargs)
+            self.slug = f"{slugify(self.name)}-{self.id}"
+            super().save(update_fields=['slug'])
+        else:
+            super().save(*args, **kwargs)
 
 class Status(models.Model):
     name = models.CharField()

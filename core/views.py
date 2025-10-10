@@ -2,9 +2,9 @@ from django.shortcuts import render
 from rest_framework import generics, permissions, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import User, Task, UserTask
-from .serializers import UserSerializer, TaskSerializer, ManageParticipantSerializer, LogWorkTimeSerializer, UserTaskSerializer
-from .permissions import IsTaskOwner, IsAssignedToTask, IsSelf
+from .models import User, Task, UserTask, BranchesTask
+from .serializers import UserSerializer, TaskSerializer, LogWorkTimeSerializer, UserTaskSerializer, BranchesTaskSerializer
+from .permissions import IsTaskOwner, IsSelf, IsParticipantOfTask
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -16,19 +16,21 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     base_permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self, serializer):
-        task = serializer.save()
-        UserTask.objects.create(
-            user=self.request.user,
-            task=task,
-            role=UserTask.Role.OWNER
-        )
-
     def get_permissions(self):
         permission_classes = self.base_permission_classes
         if self.action in ['update', 'partial_update', 'destroy']:
             permission_classes.append(IsTaskOwner)
         return [permission() for permission in permission_classes] 
+    
+class BranchesTaskViewSet(viewsets.ModelViewSet):
+    serializer_class = BranchesTaskSerializer
+    permission_classes = [permissions.IsAuthenticated, IsParticipantOfTask]
+
+    def get_queryset(self):
+        return BranchesTask.objects.filter(task_id=self.kwargs['task_pk'])
+    
+    def perform_create(self, serializer):
+        serializer.save(task_id=self.kwargs["task_pk"])
     
 class UserTaskViewSet(viewsets.ModelViewSet):
     serializer_class = UserTaskSerializer
@@ -56,20 +58,12 @@ class UserTaskViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], name="Log work time")
     def log_time(self, request, task_pk=None, pk=None):
         user_task = self.get_object()
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(instance=user_task, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-        if serializer.is_valid():
-            hours_to_add = serializer.validated_data['hours']
-            user_task = UserTask.objects.get(user=request.user, task=task)
-
-            current_work_time = user_task.work_time or 0
-            user_task.work_time = current_work_time + hours_to_add
-            user_task.save()
-
-            return Response(
-                {'status': 'time logged', 'total_work_time': user_task.work_time},
-                status=status.HTTP_200_OK
-            )
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
 
