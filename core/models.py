@@ -38,7 +38,7 @@ class Task(models.Model):
             super().save(*args, **kwargs)
 
 class Status(models.Model):
-    name = models.CharField()
+    name = models.CharField(max_length=50, unique=True)
 
 class BranchesTask(models.Model):
     name = models.CharField()

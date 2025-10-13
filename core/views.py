@@ -3,7 +3,7 @@ from rest_framework import generics, permissions, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import User, Task, UserTask, BranchesTask
-from .serializers import UserSerializer, TaskSerializer, LogWorkTimeSerializer, UserTaskSerializer, BranchesTaskSerializer
+from .serializers import UserSerializer, TaskSerializer, LogWorkTimeSerializer, UserTaskSerializer, BranchesTaskSerializer, ChangePasswordSerializer
 from .permissions import IsTaskOwner, IsSelf, IsParticipantOfTask
 
 class RegisterView(generics.CreateAPIView):
@@ -66,4 +66,19 @@ class UserTaskViewSet(viewsets.ModelViewSet):
             serializer.data,
             status=status.HTTP_200_OK
         )
+    
+class ChangePasswordView(generics.GenericAPIView):
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = User.objects.all()
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def put(self, request, *args, **kwargs):
+        user = self.request.user
+        serializer = self.get_serializer(data=self.request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"status": "password set successfully"}, status=status.HTTP_200_OK)
 

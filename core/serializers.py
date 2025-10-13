@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Task, User, UserTask, BranchesTask
+from .models import Status, Task, User, UserTask, BranchesTask
 from .utils import create_branch_task_for_participant
 
 class UserSerializer(serializers.ModelSerializer):
@@ -26,13 +26,14 @@ class BranchesTaskSerializer(serializers.ModelSerializer):
         read_only_fields = ("task",)
 
 class TaskSerializer(serializers.ModelSerializer):
-    status_name = serializers.CharField(source='status.name', read_only=True)
+    status = serializers.SlugRelatedField(
+        slug_field='name',
+        queryset=Status.objects.all()
+    )
 
     class Meta:
         model = Task
-
-        fields = ("id", "name", "description", "status", "status_name", "type", "planned_time", "slug")
-        extra_kwargs = {'status': {'write_only': True}}
+        fields = ("id", "name", "description", "status", "type", "planned_time", "slug")
 
     def create(self, validated_data):
         user = self.context['request'].user
@@ -78,4 +79,21 @@ class LogWorkTimeSerializer(serializers.ModelSerializer):
         instance.work_time = current_work_time + hours_to_add
         instance.save()
         return instance
+    
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Your old password was entered incorrectly. Please enter it again.")
+        return value
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        new_password = self.validated_data['new_password']
+        user.set_password(new_password)
+        user.save()
+        return user
         
