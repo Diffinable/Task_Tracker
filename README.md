@@ -42,3 +42,16 @@ python manage.py runserver
 ### Рабочее время
 - `POST /api/tasks/{task_id}/users/{user_task_id}/log_time/` - Залогировать время (только для самого себя).
 
+- Инструкция по установке и запуску:
+git clone https://github.com/Diffinable/Task_Tracker.git
+cd Task_Tracker
+python -m venv venv
+source venv/bin/activate (или venv\Scripts\activate для Windows)
+pip install -r requirements.txt
+Создать базу данных PostgreSQL.
+Создать файл .env на основе .env.example и заполнить его.
+python manage.py migrate
+python manage.py runserver
+
+
+
