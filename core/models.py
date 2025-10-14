@@ -16,6 +16,14 @@ class UserTask(models.Model):
     work_time = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     role = models.CharField(choices=Role.choices, blank=True, null=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['task', 'user'],
+                name='unique_user_task_participant'
+            )
+        ]
+
 class Task(models.Model):
     class TaskType(models.TextChoices):
         FEATURE = "feature"
