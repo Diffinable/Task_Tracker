@@ -73,6 +73,11 @@ class LogWorkTimeSerializer(serializers.ModelSerializer):
         fields = ("id", "user", "task", "work_time", "role", "hours")
         read_only_fields = ('id', 'user', 'task', 'role', "work_time")
 
+    def validate_hours(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Hours must be positive")
+        return value
+    
     def update(self, instance, validated_data):
         hours_to_add = validated_data.get('hours', 0)
         current_work_time = instance.work_time or 0

@@ -17,9 +17,11 @@ class TaskViewSet(viewsets.ModelViewSet):
     base_permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
-        permission_classes = self.base_permission_classes
+        permission_classes = self.base_permission_classes[:]
         if self.action in ['update', 'partial_update', 'destroy']:
             permission_classes.append(IsTaskOwner)
+        elif self.action == 'retrieve':
+            permission_classes.append(IsParticipantOfTask)
         return [permission() for permission in permission_classes] 
     
 class BranchesTaskViewSet(viewsets.ModelViewSet):
@@ -45,10 +47,14 @@ class UserTaskViewSet(viewsets.ModelViewSet):
         return UserTask.objects.filter(task_id=self.kwargs['task_pk'])
     
     def get_permissions(self):
-        permission_classes = self.base_permission_classes
+        permission_classes = self.base_permission_classes[:]
 
         if self.action == "log_time":
             permission_classes.append(IsSelf)
+        elif self.action in ['list', 'retrieve']:
+            permission_classes.append(IsParticipantOfTask)
+        else:
+            permission_classes.append(IsTaskOwner)
         return [permission() for permission in permission_classes]
     
     def get_serializer_class(self):
