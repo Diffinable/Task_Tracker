@@ -70,7 +70,7 @@ class LogWorkTimeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserTask
-        fields = ("id", "user", "task", "work_time", "role")
+        fields = ("id", "user", "task", "work_time", "role", "hours")
         read_only_fields = ('id', 'user', 'task', 'role')
 
     def update(self, instance, validated_data):

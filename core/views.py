@@ -27,6 +27,8 @@ class BranchesTaskViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsParticipantOfTask]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return BranchesTask.objects.none()
         return BranchesTask.objects.filter(task_id=self.kwargs['task_pk'])
     
     def perform_create(self, serializer):
@@ -38,6 +40,8 @@ class UserTaskViewSet(viewsets.ModelViewSet):
 
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return UserTask.objects.none()
         return UserTask.objects.filter(task_id=self.kwargs['task_pk'])
     
     def get_permissions(self):
