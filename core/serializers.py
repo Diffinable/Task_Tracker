@@ -71,7 +71,7 @@ class LogWorkTimeSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserTask
         fields = ("id", "user", "task", "work_time", "role", "hours")
-        read_only_fields = ('id', 'user', 'task', 'role')
+        read_only_fields = ('id', 'user', 'task', 'role', "work_time")
 
     def update(self, instance, validated_data):
         hours_to_add = validated_data.get('hours', 0)

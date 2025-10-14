@@ -12,7 +12,7 @@ class UserTask(models.Model):
         EXECUTOR = 'executor'
 
     user = models.ForeignKey("User", on_delete=models.PROTECT, blank=True, null=True)
-    task = models.ForeignKey("Task", on_delete=models.PROTECT, blank=True, null=True)
+    task = models.ForeignKey("Task", on_delete=models.CASCADE, blank=True, null=True)
     work_time = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     role = models.CharField(choices=Role.choices, blank=True, null=True)
 
@@ -43,5 +43,5 @@ class Status(models.Model):
 class BranchesTask(models.Model):
     name = models.CharField()
     url = models.CharField(blank=True, null=True)
-    task = models.ForeignKey("Task", on_delete=models.PROTECT, blank=True, null=True)
+    task = models.ForeignKey("Task", on_delete=models.SET_NULL, blank=True, null=True)
 
