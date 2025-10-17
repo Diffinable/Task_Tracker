@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Status, Task, User, UserTask, BranchesTask
-from .utils import create_branch_task_for_participant
+from .utils import create_branch_and_task_record
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -43,7 +43,7 @@ class TaskSerializer(serializers.ModelSerializer):
             task=task,
             role=UserTask.Role.OWNER
         )
-        create_branch_task_for_participant(user_task)
+        create_branch_and_task_record(user_task)
         return task
 
 class UserTaskSerializer(serializers.ModelSerializer):
@@ -58,7 +58,7 @@ class UserTaskSerializer(serializers.ModelSerializer):
         task_id = self.context['view'].kwargs['task_pk']
         validated_data['task_id'] = task_id
         user_task = super().create(validated_data)
-        create_branch_task_for_participant(user_task)
+        create_branch_and_task_record(user_task)
         return user_task
 
 class ManageParticipantSerializer(serializers.Serializer):

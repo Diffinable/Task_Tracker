@@ -162,3 +162,6 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
+
+GITHUB_ACCESS_TOKEN = os.getenv('GITHUB_ACCESS_TOKEN')
+GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME")
