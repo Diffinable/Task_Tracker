@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Status, Task, User, UserTask, BranchesTask
-from .utils import create_branch_and_task_record
+from .utils import create_branch_and_task_record, recreate_branches_for_all_participants
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,6 +45,14 @@ class TaskSerializer(serializers.ModelSerializer):
         )
         create_branch_and_task_record(user_task)
         return task
+    
+    def update(self, instance, validated_data):
+        old_name = instance.name
+        updated_task = super().update(instance, validated_data)
+        if old_name != updated_task.name:
+            self.recreate_branches_for_all_participants(updated_task)
+        return updated_task
+
 
 class UserTaskSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.username', read_only=True)
