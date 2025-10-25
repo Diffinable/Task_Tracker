@@ -47,10 +47,10 @@ class TaskSerializer(serializers.ModelSerializer):
         return task
     
     def update(self, instance, validated_data):
-        old_name = instance.name
+        old_task_name = instance.name
         updated_task = super().update(instance, validated_data)
-        if old_name != updated_task.name:
-            self.recreate_branches_for_all_participants(updated_task)
+        if old_task_name != updated_task.name:
+            recreate_branches_for_all_participants(updated_task, instance)
         return updated_task
 
 
