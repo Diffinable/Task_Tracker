@@ -30,10 +30,17 @@ class TaskSerializer(serializers.ModelSerializer):
         slug_field='name',
         queryset=Status.objects.all()
     )
+    branches = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
-        fields = ("id", "name", "description", "status", "type", "planned_time", "slug")
+        fields = ("id", "name", "description", "status", "type", "planned_time", "slug", "branches")
+        read_only_fields = ("slug", "branches")
+
+    def get_branches(self, obj):
+        branches = BranchesTask.objects.filter(task=obj)
+        return BranchesTaskSerializer(branches, many=True).data
+
 
     def create(self, validated_data):
         user = self.context['request'].user

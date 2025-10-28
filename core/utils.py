@@ -84,7 +84,24 @@ def delete_old_branches(task):
     g = Github(settings.GITHUB_ACCESS_TOKEN)
     repo = Github(settings.GITHUB_REPO_NAME)
 
-    task_branches = 
+    task_branches = BranchesTask.objects.filter(task=task).values_list('name', flat=True)
+    current_branch_names = set(task_branches)
+
+    all_branches = repo.get_branches()
+    deleted_count = 0
+
+    for branch in all_branches:
+        branch_name = branch.name
+        if branch_name.startswith(f"{task.type}/{task.id}/") and branch_name not in current_branch_names:
+            try:
+                repo.get_git_ref(f"heads/{branch_name}").delete()
+                print(f"Deleted branch = {branch_name}")
+                deleted_count += 1
+            except GithubException as e:
+                print(f"Failed to delete branch: {branch_name} - {e}")
+    
+    return deleted_count
+
 
 def create_branch_name(task, user_task):
     slug = task.slug or "no-slug"
