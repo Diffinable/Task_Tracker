@@ -40,14 +40,22 @@ class Task(models.Model):
 
     def save(self, *args, **kwargs):
         old_slug = None
-        if self.pk:
+        is_new = self.pk is None
+        if not is_new:
             old_task = Task.objects.filter(pk=self.pk).first()
             if old_task:
                 old_slug = old_task.slug
 
-        if not self.slug or (self.pk and old_slug and old_slug != f"{slugify(self.name)}-{self.pk}"):
-            self.slug = f"{slugify(self.name)}-{self.pk}"
-        super().save(*args, **kwargs)
+        if is_new:
+            super().save(*args, **kwargs)
+
+        expected_slug = slugify(f"{slugify(self.name)}-{self.pk}")
+        if not self.slug or self.slug != expected_slug:
+            self.slug = expected_slug
+            if is_new or old_slug != self.slug:
+                super().save(update_fields=['slug'])
+        elif not is_new:
+            super().save(*args, **kwargs)
 
         if old_slug and old_slug != self.slug:
             recreate_branches_for_slug_change(self, old_slug)

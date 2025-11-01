@@ -45,6 +45,7 @@ class TaskSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context['request'].user
         task = Task.objects.create(**validated_data)
+        task.refresh_from_db()
         user_task = UserTask.objects.create(
             user=user,
             task=task,
@@ -54,11 +55,7 @@ class TaskSerializer(serializers.ModelSerializer):
         return task
     
     def update(self, instance, validated_data):
-        old_task_name = instance.name
-        old_task_type = instance.type
         updated_task = super().update(instance, validated_data)
-        # if old_task_name != updated_task.name:
-        #     recreate_branches_for_slug_change(updated_task, instance)
         return updated_task
 
 
