@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.text import slugify
+from core.utils import recreate_branches_for_slug_change
 
 
 class User(AbstractUser):
@@ -38,12 +39,18 @@ class Task(models.Model):
     slug = models.CharField(unique=True ,blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        if not self.slug:
-            super().save(*args, **kwargs)
-            self.slug = f"{slugify(self.name)}-{self.id}"
-            super().save(update_fields=['slug'])
-        else:
-            super().save(*args, **kwargs)
+        old_slug = None
+        if self.pk:
+            old_task = Task.objects.filter(pk=self.pk).first()
+            if old_task:
+                old_slug = old_task.slug
+
+        if not self.slug or (self.pk and old_slug and old_slug != f"{slugify(self.name)}-{self.pk}"):
+            self.slug = f"{slugify(self.name)}-{self.pk}"
+        super().save(*args, **kwargs)
+
+        if old_slug and old_slug != self.slug:
+            recreate_branches_for_slug_change(self, old_slug)
 
 class Status(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -52,4 +59,5 @@ class BranchesTask(models.Model):
     name = models.CharField()
     url = models.CharField(blank=True, null=True)
     task = models.ForeignKey("Task", on_delete=models.SET_NULL, blank=True, null=True)
+    user_task = models.ForeignKey(UserTask, on_delete=models.CASCADE, blank=True, null=True)
 
