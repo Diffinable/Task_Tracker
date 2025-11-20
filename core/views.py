@@ -2,6 +2,8 @@ from django.shortcuts import render
 from rest_framework import generics, permissions, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
+from django.db import transaction
 from .models import User, Task, UserTask, BranchesTask
 from .serializers import UserSerializer, TaskSerializer, LogWorkTimeSerializer, UserTaskSerializer, BranchesTaskSerializer, ChangePasswordSerializer
 from .permissions import IsTaskOwner, IsSelf, IsParticipantOfTask
@@ -49,16 +51,16 @@ class BranchesTaskViewSet(viewsets.ModelViewSet):
                 print(f"Created GitHub branch: {branch_name}")
             except GithubException as e:
                 if e.status == 422 and "already exists" in str(e.data).lower():
-                    print(f"Branch already exists in GitHub: {branch_name}")
+                    raise ValidationError(f"Branch already exists in GitHub: {branch_name}")
                 else:
-                    raise e
-
-                if not serializer.validated_data.get('url'):
-                    serializer.validated_data['url'] = f"https://github.com/{settings.GITHUB_REPO_NAME}/tree/{branch_name}"
+                    raise ValidationError(f"GitHub error: {e.data.get('message', str(e))}")
         except GithubException as e:
-            print(f"GitHub error: {e.status} - {e.data}")
+            raise ValidationError(f"GitHub connection error: {e.data.get("message", str(e))}")
         except Exception as e:
-            print(f"Error creating GitHub branch: {repr(e)}")
+            raise ValidationError(f"Error creating GitHub branch: {str(e)}")
+
+        if not serializer.validated_data.get('url'):
+            serializer.validated_data['url'] = f"https://github.com/{settings.GITHUB_REPO_NAME}/tree/{branch_name}"
         serializer.save(task_id=task_id)
     
     def perform_update(self, serializer):
@@ -71,36 +73,32 @@ class BranchesTaskViewSet(viewsets.ModelViewSet):
 
         if old_name != new_name:
             try:
-                g = Github(settings.GITHUB_ACCESS_TOKEN)
-                repo = g.get_repo(settings.GITHUB_REPO_NAME)
-                try:
-                    repo.get_branch(new_name)
-                    print(f"New branch already exists in GitHub: {new_name}")
-                    github_operation_successful = False
-                except GithubException as e:
-                    if e.status == 404:
-                        try:
-                            old_branch = repo.get_branch(old_name)
-                            source_sha = old_branch.commit.sha
-                            repo.create_git_ref(f"refs/heads/{new_name}", sha=source_sha)
-                            print(f"Created new GitHub branch: {new_name} from old branch {old_name}")
-
-                            repo.get_git_ref(f"heads/{old_name}").delete()
-                            print(f"Delete old GitHub branch: {old_name}")
-                            github_operation_successful = True
-                        except GithubException as create_error:
-                            print(f"GitHub error during branch rename: {create_error.status} - {create_error.data}")
-                            github_operation_successful = False
-                    else:
-                        print(f"GitHub error checkng new branch: {e.status} - {e.data}")
+                with transaction.atomic():
+                    g = Github(settings.GITHUB_ACCESS_TOKEN)
+                    repo = g.get_repo(settings.GITHUB_REPO_NAME)
+                    try:
+                        repo.get_branch(new_name)
+                        raise ValidationError(f"New branch already exists in GitHub: {new_name}")
                         github_operation_successful = False
-                if github_operation_successful and not serializer.validated_data.get("url"):
-                    serializer.validated_data["url"] = f"https://github.com/{setting.GITHUB_REPO_NAME}/tree/{new_name}"
+                    except GithubException as e:
+                        if e.status != 404:
+                            raise ValidationError(f"GitHub error checkng new branch: {e.data.get("message", str(e))}")
+                    old_branch = repo.get_branch(old_name)
+                    source_sha = old_branch.commit.sha
+                    repo.create_git_ref(f"refs/heads/{new_name}", sha=source_sha)
+                    print(f"Created new GitHub branch: {new_name} from old branch {old_name}")
+                    if not serializer.validated_data.get("url"):
+                        serializer.validated_data["url"] = f"https://github.com/{settings.GITHUB_REPO_NAME}/tree/{new_name}"
+                    serializer.save()
+
+                    repo.get_git_ref(f"heads/{old_name}").delete()
+                    print(f"Delete old GitHub branch: {old_name}")
             except GithubException as e:
-                print(f"GitHub error during rename: {e.status} - {e.data}")
+                raise ValidationError(f"GitHub error during rename: {e.data.get("message", str(e))}")
             except Exception as e:
-                print(f"Error renaming GitHub branch: {repr(e)}")
-        serializer.save()
+                raise ValidationError(f"Error renaming GitHub branch: {str(e)}")
+        else:
+            serializer.save()
     
     def perform_destroy(self, instance):
         from github import Github, GithubException
@@ -114,14 +112,14 @@ class BranchesTaskViewSet(viewsets.ModelViewSet):
                 print(f"Deleted GitHub branch: {branch_name}")
             except GithubException as e:
                 if e.status == 404:
-                    print(f"Branch not found in GitHub: {branch_name}")
+                    raise ValidationError(f"Branch not found in GitHub: {branch_name}")
                 else:
-                    raise
+                    raise ValidationError(f"GitGub deletion error: {e.data.get("message", str(e))}")
 
         except GithubException as e:
-            print(f"GitHub error during delete: {e.status} - {e.data}")
+            raise ValidationError(f"GitHub connection error: {e.data.get("message", str(e))}")
         except Exception as e:
-            print(f"Error deleting GitHub branch: {repr(e)}")
+            raise ValidationError(f"Error deleting GitHub branch: {str(e)}")
         instance.delete()
 
 class UserTaskViewSet(viewsets.ModelViewSet):
