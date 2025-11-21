@@ -1,6 +1,8 @@
 from rest_framework import serializers
+from django.db import transaction
 from .models import Status, Task, User, UserTask, BranchesTask
 from .utils import create_branch_and_task_record, recreate_branches_for_slug_change
+from .services import GitHubService
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,7 +25,30 @@ class BranchesTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = BranchesTask
         fields = ("id", "name", "url", "task")
-        read_only_fields = ("task",)
+        read_only_fields = ("task", "url")
+
+    def create(self, validated_data):
+        task_id = self.context["view"].kwargs["task_pk"]
+        validated_data["task_id"] = task_id
+        branch_name = validated_data["name"]
+
+        gh_service = GitHubService()
+        branch_url = gh_service.create_branch(branch_name)
+        validated_data["url"] = branch_url
+
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        new_name = validated_data.get("name")
+        if not new_name or new_name == instance.name:
+            return super().update(instance, validated_data)
+        gh_service = GitHubService()
+        with transaction.atomic():
+            new_url = gh_service.rename_branch(instance.name, new_name)
+            validated_data["url"] = new_url
+            instance = super().update(instance, validated_data)
+        return instance
+    
 
 class TaskSerializer(serializers.ModelSerializer):
     status = serializers.SlugRelatedField(
