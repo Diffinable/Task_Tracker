@@ -6,13 +6,13 @@ class GitHubService:
     def __init__(self):
         if not settings.GITHUB_ACCESS_TOKEN or not settings.GITHUB_REPO_NAME:
             raise ValidationError(f"GitHub configuration is missing in settings")
-        
+
         self.client = Github(settings.GITHUB_ACCESS_TOKEN)
         try:
             self.repo = self.client.get_repo(settings.GITHUB_REPO_NAME)
         except Exception as e:
             raise ValidationError(f"Could not connect to GitHub repo: {str(e)}")
-        
+
     def create_branch(self, branch_name, source_branch="main"):
         """Created a branch in GitHub"""
         try:
@@ -25,7 +25,7 @@ class GitHubService:
                 raise ValidationError(f"Branch already exists in GitHub: {branch_name}")
             else:
                 raise ValidationError(f"GitHub error: {e.data.get('message', str(e))}")
-    
+
     def rename_branch(self, old_name, new_name):
         """Renames branch by creating a new one and deleting the old one"""
         try:
@@ -39,11 +39,13 @@ class GitHubService:
             source_sha = old_branch.commit.sha
             self.repo.create_git_ref(f"refs/heads/{new_name}", sha=source_sha)
         except Exception as e:
-            raise ValidationError(f"Failed to create a new branch '{new_name}': {str(e)}")
+            raise ValidationError(
+                f"Failed to create a new branch '{new_name}' (Old branch {old_name} missing): {str(e)}"
+            )
         self.delete_branch(old_name)
 
         return f"https://github.com/{settings.GITHUB_REPO_NAME}/tree/{new_name}"
-    
+
     def delete_branch(self, branch_name):
         try:
             ref = self.repo.get_git_ref(f"heads/{branch_name}")
@@ -54,5 +56,3 @@ class GitHubService:
                 pass
             else:
                 raise ValidationError(f"GitGub deletion error: {e.data.get("message", str(e))}")
-    
-            

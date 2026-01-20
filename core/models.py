@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.text import slugify
-from core.utils import recreate_branches_for_slug_change
+from core.utils import update_branches_for_task
 
 
 class User(AbstractUser):
@@ -39,26 +39,26 @@ class Task(models.Model):
     slug = models.CharField(unique=True ,blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        old_slug = None
         is_new = self.pk is None
+        old_slug = None
+        old_type = None
         if not is_new:
-            old_task = Task.objects.filter(pk=self.pk).first()
+            old_task = Task.objects.filter(pk=self.pk).only("slug", "type").first()
             if old_task:
                 old_slug = old_task.slug
+                old_type = old_task.type
 
-        if is_new:
-            super().save(*args, **kwargs)
-
-        expected_slug = slugify(f"{slugify(self.name)}-{self.pk}")
+        super().save(*args, **kwargs)
+        
+        expected_slug = slugify(f"{(self.name)}-{self.pk}")
         if not self.slug or self.slug != expected_slug:
             self.slug = expected_slug
             if is_new or old_slug != self.slug:
-                super().save(update_fields=['slug'])
-        elif not is_new:
-            super().save(*args, **kwargs)
-
-        if old_slug and old_slug != self.slug:
-            recreate_branches_for_slug_change(self, old_slug)
+                Task.objects.filter(pk=self.pk).update(slug=expected_slug)
+                # super().save(update_fields=['slug'])
+        if not is_new and old_task and old_slug != self.slug and old_type != self.type:
+            from core.utils import update_branches_for_task
+            update_branches_for_task(self, old_slug, old_type)
 
 class Status(models.Model):
     name = models.CharField(max_length=50, unique=True)

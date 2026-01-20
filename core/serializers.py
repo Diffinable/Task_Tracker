@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.db import transaction
 from .models import Status, Task, User, UserTask, BranchesTask
-from .utils import create_branch_and_task_record, recreate_branches_for_slug_change
+from .utils import create_branch_and_task_record, update_branches_for_task
 from .services import GitHubService
 
 class UserSerializer(serializers.ModelSerializer):
@@ -79,11 +79,7 @@ class TaskSerializer(serializers.ModelSerializer):
         create_branch_and_task_record(user_task)
         return task
     
-    def update(self, instance, validated_data):
-        updated_task = super().update(instance, validated_data)
-        return updated_task
-
-
+    
 class UserTaskSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.username', read_only=True)
 
